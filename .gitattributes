@@ -1,0 +1,27 @@
+# 统一换行符策略
+#
+# 为什么需要它：
+#   Windows 默认 CRLF、Linux/macOS 默认 LF。
+#   如果没有这个文件，同一份代码在两台机器上会产生「整文件都被修改」的假 diff，
+#   让 Code Review 无法进行，也会污染 git blame。
+#
+#   text=auto  → git 自动识别文本文件并在仓库内统一存为 LF
+#   eol=lf     → 检出时也用 LF，保证跨平台一致
+* text=auto eol=lf
+
+# 锁文件体积大且内容机器生成，diff 没有意义
+pnpm-lock.yaml -diff
+package-lock.json -diff
+yarn.lock -diff
+
+# 显式声明二进制类型，避免 git 误做换行转换
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.woff binary
+*.woff2 binary
+
+# 标记为「语言统计不计入」，避免文档类文件扭曲仓库的语言占比
+.env.example  linguist-language=dotenv
