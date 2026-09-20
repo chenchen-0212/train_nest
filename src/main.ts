@@ -39,7 +39,10 @@ async function bootstrap(): Promise<void> {
   // ---------- ③ 全局路由前缀 ----------
   // 健康检查排除在前缀之外：容器编排 / 负载均衡的探针地址通常是固定的 /health，
   // 把前缀加进去会让探针配置依赖业务配置，徒增耦合。
-  app.setGlobalPrefix(apiPrefix, { exclude: ['health'] });
+  //
+  // ⚠️ 两条都要排除：字符串形式的 exclude 是精确匹配，
+  //    'health' 不会自动覆盖 'health/ready'。
+  app.setGlobalPrefix(apiPrefix, { exclude: ['health', 'health/ready'] });
 
   // ---------- ④ 接口文档 ----------
   const swaggerConfig = new DocumentBuilder()

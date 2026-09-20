@@ -11,8 +11,11 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor.js';
 import { AppValidationPipe } from './common/pipes/app-validation.pipe.js';
 
+import { DatabaseModule } from './database/database.module.js';
+
 import { HealthModule } from './modules/health/health.module.js';
 import { DemoModule } from './modules/demo/demo.module.js';
+import { UserModule } from './modules/user/user.module.js';
 
 /**
  * 根模块
@@ -74,10 +77,17 @@ import { DemoModule } from './modules/demo/demo.module.js';
     }),
 
     // ---------------------------------------------------------------
-    // ③ 业务模块
+    // ③ 数据层 —— 必须排在业务模块之前
+    //    业务模块里的 TypeOrmModule.forFeature() 依赖它建好的连接
+    // ---------------------------------------------------------------
+    DatabaseModule,
+
+    // ---------------------------------------------------------------
+    // ④ 业务模块
     // ---------------------------------------------------------------
     HealthModule,
     DemoModule,
+    UserModule,
   ],
 
   /**

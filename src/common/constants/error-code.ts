@@ -33,6 +33,7 @@ export enum ErrorCode {
   RESOURCE_NOT_FOUND = 10002,
   RESOURCE_CONFLICT = 10003,
   TOO_MANY_REQUESTS = 10004,
+  SERVICE_UNAVAILABLE = 10005,
 
   // ---- 2xxxx 认证 ----
   UNAUTHORIZED = 20001,
@@ -73,6 +74,7 @@ export const ErrorMessage: Record<ErrorCode, string> = {
   [ErrorCode.RESOURCE_NOT_FOUND]: '资源不存在',
   [ErrorCode.RESOURCE_CONFLICT]: '资源状态冲突',
   [ErrorCode.TOO_MANY_REQUESTS]: '请求过于频繁，请稍后再试',
+  [ErrorCode.SERVICE_UNAVAILABLE]: '依赖服务不可用，请稍后再试',
 
   [ErrorCode.UNAUTHORIZED]: '未登录或登录状态已失效',
   [ErrorCode.TOKEN_EXPIRED]: '登录已过期，请重新登录',
@@ -110,4 +112,5 @@ export const HttpStatusToErrorCode: Record<number, ErrorCode> = {
   409: ErrorCode.RESOURCE_CONFLICT,
   429: ErrorCode.TOO_MANY_REQUESTS,
   500: ErrorCode.INTERNAL_ERROR,
+  503: ErrorCode.SERVICE_UNAVAILABLE,
 };
