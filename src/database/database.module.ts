@@ -80,11 +80,32 @@ import { TypeOrmModule } from '@nestjs/typeorm';
         // 打开时，每次启动 TypeORM 都会：
         //   对比「实体定义」与「数据库实际结构」→ 自动执行 ALTER TABLE
         //
-        // 会发生的三件事：
-        //   实体里删了一个字段  → DROP COLUMN    → 数据永久丢失
-        //   改了字段类型        → MODIFY COLUMN  → 可能截断数据
-        //   改了字段名          → 相当于删旧建新  → 数据永久丢失
+        // 会发生的几件事（以下均为实测确认，非推测）：
+        //   实体里删一个字段          → DROP COLUMN    → 数据永久丢失
+        //   改字段类型                → MODIFY COLUMN  → 可能截断数据
+        //   改名【且本次只动了这一处】 → CHANGE         → 数据保留（见下方「重命名检测」）
+        //   一次性改两个字段名         → DROP ×2 + ADD ×2 → 数据全丢（重命名检测失效）
+        //   同时删一列 + 加一列        → CHANGE         → ⚠️ 被误判为改名，旧数据跑到新列上
         //   全程【没有任何确认提示】，也不会告警。
+        //
+        // 【重命名检测】TypeORM 在 renameColumns() 里用「一进一出各恰好一个」来【猜】改名：
+        //     ① 实体列数与表列数必须完全相同（增删列会直接打破这条）
+        //     ② 实体有、表没有的列 恰好 1 个
+        //     ③ 表有、实体没有的列 恰好 1 个
+        //   三条同时满足 → 判定为重命名，生成 ALTER ... CHANGE，数据跟着走。
+        //   少了任何一条 → 退化成 ADD / DROP，数据不保。
+        //
+        //   ⚠️ 这个判断靠的是「数量恰好匹配」，不是真正的重命名信息。
+        //      所以它【无法区分】「把 A 改名成 B」和「删掉 A、新增 B」——
+        //      后者会被误判成前者，于是你以为是空的新列，其实继承了一列旧数据。
+        //
+        //   TypeORM 源码注释自己也承认了这个局限：
+        //     "Works if only one column per table was changed.
+        //      Changes only column name. If something besides name was changed,
+        //      these changes will be ignored."
+        //
+        //   结论：靠 synchronize 改表结构，本质上是在赌「本次只动了一处」。
+        //        生产环境的表结构变更必须交给迁移脚本显式管控。
         //
         // 所以：
         //   本地开发  可以开，方便快速试错（本课就靠它把 user 表建出来）
