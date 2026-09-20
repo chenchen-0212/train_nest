@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './entities/user.entity.js';
+import { UserController } from './user.controller.js';
+import { UserService } from './user.service.js';
 
 /**
  * 用户模块
@@ -33,5 +35,21 @@ import { User } from './entities/user.entity.js';
  */
 @Module({
   imports: [TypeOrmModule.forFeature([User])],
+  controllers: [UserController],
+  providers: [UserService],
+
+  /**
+   * ⭐ 上一课的「刻意不 exports」在这里兑现了：
+   *
+   *   ❌ exports: [TypeOrmModule]        → 把 Repository 借出去
+   *      别人可以绕过 UserService 直接操作 user 表
+   *
+   *   ✅ exports: [UserService]          → 只借出「服务」
+   *      别人只能调用我们允许的方法，规则集中在 Service 内
+   *
+   * 对外暴露的粒度决定了模块边界的强度。
+   * 暴露 Repository = 没有边界；暴露 Service = 有边界。
+   */
+  exports: [UserService],
 })
 export class UserModule {}
