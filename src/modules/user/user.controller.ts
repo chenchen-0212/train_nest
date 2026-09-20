@@ -40,7 +40,11 @@ export class UserController {
   @Post('seed')
   @ApiOperation({ summary: '⚠️ 教学用：插入一条测试用户（第 4 课由注册接口取代）' })
   async seed(@Body() dto: SeedUserDto) {
-    const saved = await this.userService.seed(dto.username, dto.email);
+    const { user: saved, diagnostics } = await this.userService.seed(
+      dto.username,
+      dto.email,
+      dto.password,
+    );
 
     return {
       id: saved.id,
@@ -67,6 +71,7 @@ export class UserController {
         : '是 ← 正常现象：save() 返回的是内存对象，不是查询结果，select: false 不作用于它',
       'password 是否在查询结果里': '否 ← 见 GET /api/user/:username/password-probe 的对比',
       hint: '注意 id 是 string。往下看 GET /api/user/:id 的诊断输出',
+      ...diagnostics,
     };
   }
 

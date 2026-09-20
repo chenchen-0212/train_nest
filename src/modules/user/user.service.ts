@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { PasswordService } from '../../common/security/password.service.js';
 import { User } from './entities/user.entity.js';
 
 /**
@@ -49,6 +50,18 @@ export class UserService {
      */
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+
+    /**
+     * 密码哈希能力
+     *
+     * 注意它是从 SecurityModule 来的，不是 UserModule 自己提供的 ——
+     * 所以 UserModule 必须 imports: [SecurityModule]，
+     * 否则这里会报 UnknownDependenciesException。
+     *
+     * 这个报错的排查路径和第 1 课那次一模一样：
+     *   看括号里哪个参数是 ?，就去查那个类所属模块有没有 exports。
+     */
+    private readonly passwordService: PasswordService,
   ) {}
 
   /**
@@ -116,31 +129,56 @@ export class UserService {
   }
 
   /**
-   * ⚠️ 造测试数据 —— 仅本课教学使用，第 4 课会被真正的注册接口取代。
+   * ⚠️ 造测试数据 —— 仅教学使用，第 4 课会被真正的注册接口取代。
    *
-   * 关于 password 字段：
-   *   这里刻意写入一个【明显不是哈希】的占位串，
-   *   而不是写明文密码。
-   *   原因：让「密码 = 占位符」这件事在代码里刺眼可见，
-   *        避免形成「随手写明文」的习惯。
-   *        第 3 课会用 bcrypt 生成真正的哈希。
+   * 关于 password：
+   *   现在走真正的 bcrypt 哈希了（第 3 课）。
+   *
+   *   注意顺序 —— 先哈希，再入库：
+   *     ✅ const hash = await this.passwordService.hash(plain);
+   *        create({ password: hash })
+   *     ❌ 先把明文存进去，再想办法改
+   *
+   *   「明文永不落库」必须是结构上的保证，不是流程上的自觉。
    */
-  async seed(username: string, email: string): Promise<User> {
+  async seed(
+    username: string,
+    email: string,
+    plainPassword: string,
+  ): Promise<{ user: User; diagnostics: Record<string, unknown> }> {
+    const passwordHash = await this.passwordService.hash(plainPassword);
+
     const user = this.userRepository.create({
       username,
       email,
-      password: 'PLACEHOLDER-NOT-A-REAL-HASH-第3课替换',
+      password: passwordHash,
       nickname: `测试-${username}`,
       status: 1,
     });
 
     const saved = await this.userRepository.save(user);
 
+    // 回环验证：用刚存的哈希校验原始密码，证明这条链路是通的
+    const verified = await this.passwordService.verify(
+      plainPassword,
+      passwordHash,
+    );
+
     this.logger.log(
       { id: saved.id, username: saved.username, typeOfId: typeof saved.id },
       '已插入测试用户',
     );
 
-    return saved;
+    return {
+      user: saved,
+      diagnostics: {
+        '哈希长度': passwordHash.length,
+        '哈希前缀（算法 $2b$ + cost 10）': passwordHash.slice(0, 7),
+        算法: passwordHash.slice(0, 4),
+        代价因子: passwordHash.slice(4, 7),
+        回环验证: verified ? '原密码校验通过' : '校验失败 —— 实现有问题',
+        提示: '盐值与哈希都在同一个 60 字符串里，不需要单独字段',
+      },
+    };
   }
 }

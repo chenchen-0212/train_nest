@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { SecurityModule } from '../../common/security/security.module.js';
 import { User } from './entities/user.entity.js';
 import { UserController } from './user.controller.js';
 import { UserService } from './user.service.js';
@@ -34,7 +35,19 @@ import { UserService } from './user.service.js';
  *   默认不外借 —— 需要时才开一个口子。
  */
 @Module({
-  imports: [TypeOrmModule.forFeature([User])],
+  /**
+   * imports 是一个模块的【依赖清单】。
+   *
+   * SecurityModule 提供 PasswordService（哈希能力），
+   * TypeOrmModule.forFeature 提供 User 的 Repository。
+   * UserService 构造函数的两个参数，正好各自来自其中一个。
+   *
+   * 排查 UnknownDependenciesException 的方法：
+   *   看报错括号里哪个参数是 ?，就去问「那个类由哪个模块提供、
+   *   那个模块有没有 exports、我这里有没有 imports」。
+   *   三个问题答完，问题必然定位到。
+   */
+  imports: [TypeOrmModule.forFeature([User]), SecurityModule],
   controllers: [UserController],
   providers: [UserService],
 
