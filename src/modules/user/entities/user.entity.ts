@@ -58,18 +58,18 @@ export class User {
    *   （两个请求同时查到「不存在」，然后都插入 → 两条重复数据）
    *   → 这叫 check-then-act 竞态，唯一索引是最后一道防线，不能省。
    */
+  @Index('uk_user_username', {unique: true})
   @Column({
     type: 'varchar',
     length: 50,
-    unique: true,
     comment: '登录名',
   })
   username: string;
 
+  @Index('uk_user_email', {unique: true})
   @Column({
     type: 'varchar',
     length: 100,
-    unique: true,
     comment: '邮箱',
   })
   email: string;

@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
+import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE, APP_GUARD } from '@nestjs/core';
 import { LoggerModule } from 'nestjs-pino';
 
 import configuration from './config/configuration.js';
@@ -16,6 +16,9 @@ import { DatabaseModule } from './database/database.module.js';
 import { HealthModule } from './modules/health/health.module.js';
 import { DemoModule } from './modules/demo/demo.module.js';
 import { UserModule } from './modules/user/user.module.js';
+import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard.js';
+import { AuthModule } from './modules/auth/auth.module.js';
+
 
 /**
  * 根模块
@@ -88,6 +91,7 @@ import { UserModule } from './modules/user/user.module.js';
     HealthModule,
     DemoModule,
     UserModule,
+    AuthModule,
   ],
 
   /**
@@ -111,6 +115,7 @@ import { UserModule } from './modules/user/user.module.js';
    * 这是「教程代码」和「企业级代码」最典型的差别之一。
    */
   providers: [
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_PIPE, useClass: AppValidationPipe },
     { provide: APP_INTERCEPTOR, useClass: TransformInterceptor },
     { provide: APP_FILTER, useClass: AllExceptionsFilter },

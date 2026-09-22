@@ -44,5 +44,6 @@ export const envValidationSchema = Joi.object({
   // ---------- 认证 ----------
   // 长度下限是硬要求：密钥太短等于没有签名保护
   JWT_SECRET: Joi.string().min(16).required(),
-  JWT_EXPIRES_IN: Joi.string().default('7d'),
+  JWT_ACCESS_EXPIRES_IN: Joi.string().default('15m'),
+  JWT_REFRESH_EXPIRES_IN: Joi.string().default('7d'),
 });

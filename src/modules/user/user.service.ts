@@ -3,6 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PasswordService } from '../../common/security/password.service.js';
 import { User } from './entities/user.entity.js';
+import { ErrorCode } from '../../common/constants/error-code.js';
+import { BusinessException } from '../../common/exceptions/business.exception.js';
 
 /**
  * 用户服务 —— 对 user 表的唯一出入通道
@@ -101,12 +103,58 @@ export class UserService {
    * 这个名字起得长是故意的 —— 调用处一眼能看出
    * 「这里会拿到敏感字段」，review 时好识别。
    */
-  findByUsernameWithPassword(username: string): Promise<User | null> {
+  findByAccountWithPassword(account: string): Promise<User | null> {
     return this.userRepository
       .createQueryBuilder('user')
       .addSelect('user.password')
-      .where('user.username = :username', { username })
+      .where(
+        account.includes('@') ? 'user.email = :account' : 'user.username = :account',
+        { account },
+      )
       .getOne();
+  }
+
+   /**
+   * 注册：先哈希再落库，唯一冲突交给数据库的 1062 来判
+   *
+   * ⚠️ 不要「先 SELECT 确认不存在再 INSERT」—— 并发下必然重复（check-then-act 竞态）
+   */
+  async createUser(input:{
+    username: string;
+    email: string;
+    password: string;
+    nickname?: string;
+  }) : Promise<User> {
+    const passwordHash = await this.passwordService.hash(input.password);
+
+    try {
+      return await this.userRepository.save(
+        this.userRepository.create({
+          username: input.username,
+          email: input.email,
+          password: passwordHash,
+          nickname: input.nickname ?? null,
+          status: 1,
+        }),
+      );
+    } catch (err) {
+      throw UserService.translateUniqueConflict(err);
+    }
+   }
+
+  /** 把 MySQL 的 1062 翻译成「哪个字段冲突」 */
+  private static translateUniqueConflict(err: unknown): unknown {
+    const driverCode = (err as { driverError?: { code?: string } }).driverError?.code;
+    if (driverCode !== 'ER_DUP_ENTRY') return err;
+
+    const message = err instanceof Error ? err.message : '';
+    if (message.includes('uk_user_email')) {
+      return new BusinessException(ErrorCode.USER_ALREADY_EXISTS, '该邮箱已被注册');
+    }
+    if (message.includes('uk_user_username')) {
+      return new BusinessException(ErrorCode.USER_ALREADY_EXISTS, '该用户名已被占用');
+    }
+    return new BusinessException(ErrorCode.USER_ALREADY_EXISTS);
   }
 
   /**

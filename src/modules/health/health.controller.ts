@@ -8,7 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
-
+import { Public } from '../auth/decorators/public.decorator.js'
 /**
  * 健康检查
  *
@@ -31,6 +31,7 @@ import { DataSource } from 'typeorm';
  *
  * 这条区分在本地开发时完全感受不到，但它是「服务能不能扛住依赖故障」的分水岭。
  */
+// @Public()
 @ApiTags('健康检查')
 @Controller('health')
 export class HealthController {

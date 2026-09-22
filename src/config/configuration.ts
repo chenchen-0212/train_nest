@@ -11,6 +11,24 @@
  * 工厂函数在 ConfigModule 初始化后才执行，此时 .env 已被加载完毕，
  * 写成对象字面量会在模块 import 阶段就求值，读到 undefined。
  */
+
+const UNIT_SECONDS: Record<string, number> = { s: 1, m: 60, h: 3600, d: 86400 };
+
+/**
+ * 把 '2h' / '7d' / '30m' 这类时长串转成秒。
+ *
+ * 为什么要自己写：
+ *   ① 响应体里的 expiresIn 契约单位是【秒】（PRD §3.1），env 里写 '2h' 更可读
+ *   ② 不用 ms 包 —— 它只是 jsonwebtoken 的传递依赖，pnpm 下直接 import 属于幽灵依赖
+ */
+function durationToSeconds(value: string | undefined, fallbackSeconds: number): number {
+  if (!value) return fallbackSeconds;
+  const matched = /^(\d+)\s*([smhd])?$/.exec(value.trim());
+  if (!matched) return fallbackSeconds;
+  return Number(matched[1]) * (UNIT_SECONDS[matched[2] ?? 's'] ?? 1);
+}
+
+
 export default () => ({
   app: {
     name: process.env.APP_NAME as string,
@@ -40,7 +58,11 @@ export default () => ({
 
   jwt: {
     secret: process.env.JWT_SECRET as string,
-    expiresIn: process.env.JWT_EXPIRES_IN as string,
+    accessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN as string,
+    refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN as string,
+        /** 派生值：响应体里要的是秒，别在 Service 里再算一遍 */
+    accessExpiresInSeconds: durationToSeconds(process.env.JWT_ACCESS_EXPIRES_IN, 900),
+    refreshExpiresInSeconds: durationToSeconds(process.env.JWT_REFRESH_EXPIRES_IN, 604800),
   },
 });
 
@@ -58,5 +80,11 @@ declare function configurationShape(): {
     synchronize: boolean;
     logging: boolean;
   };
-  jwt: { secret: string; expiresIn: string };
+  jwt: { 
+    secret: string;
+    accessExpiresIn: string;
+    refreshExpiresIn: string;
+    accessExpiresInSeconds: number;
+    refreshExpiresInSeconds: number;
+  };
 };

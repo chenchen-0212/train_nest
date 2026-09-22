@@ -124,7 +124,7 @@ export class UserController {
     }
 
     const withPassword =
-      await this.userService.findByUsernameWithPassword(username);
+      await this.userService.findByAccountWithPassword(username);
 
     return {
       '① 仓储方法 findOne（默认行为）':

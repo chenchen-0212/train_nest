@@ -40,6 +40,8 @@ export enum ErrorCode {
   TOKEN_EXPIRED = 20002,
   TOKEN_INVALID = 20003,
   CREDENTIALS_INVALID = 20004,
+  REFRESH_TOKEN_INVALID = 20005, // 新增：refresh token 无效 / 已撤销 / 已过期
+  REFRESH_TOKEN_REUSED = 20006,  // 新增：检测到已轮转的 token 被再次使用
 
   // ---- 3xxxx 权限 ----
   FORBIDDEN = 30001,
@@ -80,6 +82,8 @@ export const ErrorMessage: Record<ErrorCode, string> = {
   [ErrorCode.TOKEN_EXPIRED]: '登录已过期，请重新登录',
   [ErrorCode.TOKEN_INVALID]: '登录凭证无效',
   [ErrorCode.CREDENTIALS_INVALID]: '用户名或密码错误',
+  [ErrorCode.REFRESH_TOKEN_INVALID]: '登录状态已失效，请重新登录',
+  [ErrorCode.REFRESH_TOKEN_REUSED]: '检测到凭证异常使用，该会话已失效',
 
   [ErrorCode.FORBIDDEN]: '无权访问该资源',
   [ErrorCode.PERMISSION_DENIED]: '缺少必要的操作权限',
