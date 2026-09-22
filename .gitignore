@@ -30,6 +30,7 @@ coverage/
 .vscode/*
 !.vscode/extensions.json
 .DS_Store
+.codeBuddy/
 Thumbs.db
 
 # ---------- 运行时临时文件 ----------
